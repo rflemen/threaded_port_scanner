@@ -65,20 +65,17 @@ def portscan(port):
 
 # Determine which ports to scan based on the mode argument entered
 def port_list(scan_mode):
-    # Scan "well-known" ports
-    if scan_mode == 1:
+    if scan_mode == 1: # Scan "well-known" ports
         for port in range(1, 1025):
             queue.put(port)
-    elif scan_mode == 2:
-        # Scan common ports
+    elif scan_mode == 2: # Scan common ports
         ports = [20, 21, 22, 23, 25, 53, 69, 80, 88, 102, 110, 111, 135, 137, 139, 143, 381, 383, 443,
                  445, 464, 465, 587, 593, 636, 691, 902, 989, 990, 993, 1025, 1194, 1337, 1589, 1725, 2082, 
                  3074, 3306, 3389, 3585, 3586, 3724, 4444, 5432, 5900, 6665, 6666, 6667, 6668, 6669, 6881,
                  6970, 6999, 8086, 8087, 8222, 9100, 10000, 12345, 12345, 27374, 31337]
         for port in ports:
             queue.put(port)
-    elif scan_mode == 3:
-        # Scan all 65,535 ports
+    elif scan_mode == 3: # Scan all 65,535 ports
         for port in range(1, 65536):
             queue.put(port) 
 
@@ -94,8 +91,8 @@ def worker():
             ports_closed.append(port)
 
 
-# Run the scanner
-def run_scanner(threads, scan_mode):
+# Start the scanner
+def start_scanner(threads, scan_mode):
     port_list(scan_mode)
     start_time = time.time()
     thread_list = []
@@ -119,4 +116,4 @@ def run_scanner(threads, scan_mode):
 
 
 # Run the scanner
-run_scanner(1800, scan_mode)
+start_scanner(1800, scan_mode)
