@@ -20,10 +20,10 @@ queue = Queue()
 ports_open = []
 ports_closed = []
 parser = argparse.ArgumentParser()
-parser.add_argument("ip_address", help="the ip address to be scanned")
-parser.add_argument("-m", "--mode", help="1=Ports 1-1024; 2=Most common ports; 3=All ports", type=int)
+parser.add_argument("-i", "--ip", help="the ip address to be scanned", type=str, default="127.0.0.1")
+parser.add_argument("-m", "--mode", help="1=Ports 1-1024; 2=Most common ports; 3=All ports", type=int, default=1)
 args = parser.parse_args()
-print(f"The IP to be scanned is: {args.ip_address}")
+print(f"The IP to be scanned is: {args.ip}")
 if args.mode == 1:
     print(f"The mode to be used is: Well known ports (1-1024)\n")
 elif args.mode == 2:
@@ -46,8 +46,8 @@ def validate_ip(ip):
 
 
 # Make sure the IP address argument entered is a valid IP
-validate_ip(args.ip_address)
-target = args.ip_address
+validate_ip(args.ip)
+target = args.ip
 scan_mode = args.mode
 
 
