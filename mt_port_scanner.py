@@ -45,7 +45,7 @@ def validate_ip(ip):
         exit()
 
 
-# Make sure the IP address argumnet entered is a valid IP
+# Make sure the IP address argument entered is a valid IP
 validate_ip(args.ip_address)
 target = args.ip_address
 scan_mode = args.mode
@@ -63,14 +63,14 @@ def portscan(port):
         return False
 
 
-# Determine which ports to scan based on the mode argumnet entered
+# Determine which ports to scan based on the mode argument entered
 def port_list(scan_mode):
     # Scan "well-known" ports
     if scan_mode == 1:
         for port in range(1, 1025):
             queue.put(port)
     elif scan_mode == 2:
-        #common ports to scan
+        # Scan common ports
         ports = [20, 21, 22, 23, 25, 53, 69, 80, 88, 102, 110, 111, 135, 137, 139, 143, 381, 383, 443,
                  445, 464, 465, 587, 593, 636, 691, 902, 989, 990, 993, 1025, 1194, 1337, 1589, 1725, 2082, 
                  3074, 3306, 3389, 3585, 3586, 3724, 4444, 5432, 5900, 6665, 6666, 6667, 6668, 6669, 6881,
@@ -78,7 +78,7 @@ def port_list(scan_mode):
         for port in ports:
             queue.put(port)
     elif scan_mode == 3:
-        # ALL 65535 ports
+        # Scan all 65,535 ports
         for port in range(1, 65536):
             queue.put(port) 
 
