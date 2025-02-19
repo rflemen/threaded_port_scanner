@@ -20,7 +20,7 @@ queue = Queue()
 ports_open = []
 ports_closed = []
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--ip", help="the ip address to be scanned", type=str, default="127.0.0.1")
+parser.add_argument("ip", help="the ip address to be scanned")
 parser.add_argument("-m", "--mode", help="1=Ports 1-1024; 2=Most common ports; 3=All ports", type=int, default=1)
 args = parser.parse_args()
 print(f"The IP to be scanned is: {args.ip}")
