@@ -145,10 +145,10 @@ def print_results(duration):
 
 
 # Run the scanner
-print_banner()
-args = get_arguments()
-target = validate_ip(args.ip)
-scan_mode = args.mode
-get_domain_name(target)
-duration = start_scanner(1800, scan_mode)
-print_results(duration)
+print_banner() # Print the banner
+args = get_arguments() # Get the arguments from the user
+target = validate_ip(args.ip) # Validate the IP address
+scan_mode = args.mode # Get the scan mode
+get_domain_name(target) # Get the domain name of the IP address
+duration = start_scanner(1800, scan_mode) # Start the scanner and return the duration of the scan
+print_results(duration) # Print the results of the scan
