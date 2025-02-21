@@ -19,9 +19,9 @@ ports_closed = []
 
 # Function to create the banner for the program
 def print_banner():
+    print("\nThreaded...\033[94m")
     scanner_banner = pyfiglet.figlet_format("Port Scanner", font="slant")
-    print("\nThreaded...")
-    print(scanner_banner)
+    print(scanner_banner, "\033[00m")
     print("v0.10\t\t\t\t\t\t by Rob Flemen\n")
 
 
@@ -56,7 +56,6 @@ def validate_ip(ip):
 def get_domain_name(target):
     print(f"Attempting to resolve the domain name for \033[93m{target}\033[00m")
     try:
-        socket.setdefaulttimeout(1)
         hostname = socket.gethostbyaddr(target)[0]
         return print(f"[\033[92mSUCCESS\033[00m] The domain name is: \033[93m{hostname}\033[00m\n")
     except socket.herror:
@@ -121,7 +120,7 @@ def start_scanner(threads, scan_mode):
     port_list(scan_mode)
     start_time = time.time()
     thread_list = []
-    print(f"\nAttempting to scan the ports on \033[93m{target}\033[00m\n")
+    print(f"Attempting to scan the ports on \033[93m{target}\033[00m\n")
     for t in range(threads): # Add threads to the thread list
         thread = threading.Thread(target=worker) # Create a thread and assign the worker function to it
         thread_list.append(thread) # Add the thread to the thread list
@@ -138,7 +137,7 @@ def start_scanner(threads, scan_mode):
 def print_results(duration):
     print(f"\nStats for \033[93m{target}\033[00m:")
     print("--------------------------")
-    print(f"[\033[92m\N{CHECK MARK}\033[00m]\t\033[93m{len(ports_open)}\033[00m ports are OPEN: \033[93m{ports_open}\033[00m")
+    print(f"[\033[92m\N{CHECK MARK}\033[00m]\t\033[93m{len(ports_open)}\033[00m ports are \033[92mOPEN\033[00m: \033[93m{ports_open}\033[00m")
     print(f"[\033[91m!\033[00m]\t\033[93m{len(ports_closed)}\033[00m ports are \033[91mCLOSED\033[00m.")
     print(f"[\033[93m?\033[00m]\t\033[93m{len(ports_closed) + len(ports_open)}\033[00m ports scanned in \033[93m{duration:.2f}\033[00m seconds.")
     print(f"[\033[93m?\033[00m]\tScanned \033[93m{int(((len(ports_closed) + len(ports_open))/duration))}\033[00m ports per second.\n")
