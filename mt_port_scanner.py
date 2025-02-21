@@ -9,14 +9,14 @@ import re # Regular Expression module for IP address validation
 import sys # System module for exiting the program
 import os # OS module for clearing the screen
 
+
 # Create the banner for the program
 scanner_banner = pyfiglet.figlet_format("Port Scanner", font="slant")
 print("\nThreaded...")
 print(scanner_banner)
-print("\t\t\t\t\t\t by Rob Flemen\n")
+print("v0.10\t\t\t\t\t\t by Rob Flemen\n")
 
 
-# Setup the queue, lists, and arguments parser
 queue = Queue()
 print_lock = threading.Lock()
 ports_open = []
@@ -27,30 +27,54 @@ parser.add_argument("-m", "--mode", help="1=Ports 1-1024; 2=Most common ports; 3
 args = parser.parse_args()
 print(f"The IP to be scanned is: \033[93m{args.ip}\033[00m")
 if args.mode == 1:
-    print(f"The mode to be used is: \033[93mWell known ports (1-1024)\033[00m\n")
+    print(f"The mode to be used is: \033[93mWell known ports (1-1024)\033[00m")
 elif args.mode == 2:
-    print(f"The mode to be used is: \033[93mMost common ports\033[00m\n")
+    print(f"The mode to be used is: \033[93mMost common ports\033[00m")
 elif args.mode == 3:
-    print(f"The mode to be used is: \033[93mAll ports\033[00m\n")
+    print(f"The mode to be used is: \033[93mAll ports\033[00m")
 
 
-# Determine if IP addresses is valid IP address. REGEX pattern taken from: 
-# "https://www.oreilly.com/library/view/regular-expressions-cookbook/9780596802837/ch07s16.html 
-# I did have to add an escape character "\" before the "\." for it to work completely correctly
+"""     -- F  U  N  C  T  I  O  N  S --     """
+
+# Determine if IP addresses is valid IP address using REGEX pattern
 def validate_ip(ip):
     pattern = re.compile('''(^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)''')
     test = pattern.search(ip) 
     if test: # valid IP address
-        return True
+        return ip
     else: # invalid IP address
         print("\nInvalid IP address entered. Exiting program.\n")
         exit()
 
 
 # Make sure the IP address argument entered is a valid IP
-validate_ip(args.ip)
-target = args.ip
+target = validate_ip(args.ip)
 scan_mode = args.mode
+
+
+# Function to get the domain name of the IP address, if available
+def get_domain_name(target):
+    try:
+        socket.setdefaulttimeout(1)
+        hostname = socket.gethostbyaddr(target)[0]
+        return hostname
+    except socket.herror:
+        return "Domain name not found"
+
+
+domain_name = get_domain_name(target)
+print(f"The domain name is: {domain_name}\n")
+
+
+# Function to grab the banner of the service running on the open port, if available
+def banner_grab(conn): 
+    try:
+        conn.send(b'GET /\n\n')  
+        ret = conn.recv(1024) 
+        print("[\033[91mBanner Grab!\033[00m]", str(ret),"\n")
+        return 
+    except: 
+        return
 
 
 # Function to scan the ports
@@ -68,18 +92,7 @@ def portscan(port):
         return False
 
 
-def banner_grab(conn): 
-    try:
-        conn.send(b'GET /\n\n')  
-        ret = conn.recv(1024) 
-        print("[\033[91mBanner Grab!\033[00m]", str(ret),"\n")
-        return 
-    except: 
-        return
-
-
-1
-# Determine which ports to scan based on the mode argument entered
+# Function to determine which ports to scan based on the mode argument entered
 def port_list(scan_mode):
     if scan_mode == 1: # Scan "well-known" ports
         for port in range(1, 1025):
@@ -96,7 +109,7 @@ def port_list(scan_mode):
             queue.put(port) 
 
 
-# Assign workers to scan the ports and add open and closed ports to appropriate lists
+# Function to assign workers to scan the ports and add open and closed ports to appropriate lists
 def worker():
     while not queue.empty():
         port = queue.get()
@@ -106,7 +119,7 @@ def worker():
             ports_closed.append(port)
 
 
-# Start the scanner
+# Function to start the scanner & print statistics
 def start_scanner(threads, scan_mode):
     port_list(scan_mode)
     start_time = time.time()
