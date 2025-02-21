@@ -10,8 +10,8 @@ import re # Regular Expression module for IP address validation
 
 queue = Queue() # Create a queue object for multithreading
 print_lock = threading.Lock() # Create a lock object for multithreading
-ports_open = [] # Create a list to store open ports
-ports_closed = [] # Create a list to store closed ports
+ports_open = []
+ports_closed = []
 
 
 """     -- F  U  N  C  T  I  O  N  S --     """
