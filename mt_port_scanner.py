@@ -77,7 +77,7 @@ def banner_grab(conn):
 def portscan(port):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(1)
+        s.settimeout(1.1)
         s.connect((target, port))
         with print_lock:
             print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
