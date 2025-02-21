@@ -61,14 +61,14 @@ def portscan(port):
         s.connect((target, port))
         with print_lock:
             print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
-            grab(s)
+            banner_grab(s)
         s.shutdown(2)
         return (True)
     except:
         return False
 
 
-def grab(conn): 
+def banner_grab(conn): 
     try:
         conn.send(b'GET /\n\n')  
         ret = conn.recv(1024) 
