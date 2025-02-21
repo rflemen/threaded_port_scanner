@@ -6,35 +6,40 @@ import argparse # Argument parsing module
 import pyfiglet # ASCII art module
 import time # Time module for timing the scan
 import re # Regular Expression module for IP address validation 
-import sys # System module for exiting the program
-import os # OS module for clearing the screen
-
-
-# Create the banner for the program
-scanner_banner = pyfiglet.figlet_format("Port Scanner", font="slant")
-print("\nThreaded...")
-print(scanner_banner)
-print("v0.10\t\t\t\t\t\t by Rob Flemen\n")
 
 
 queue = Queue()
 print_lock = threading.Lock()
 ports_open = []
 ports_closed = []
-parser = argparse.ArgumentParser()
-parser.add_argument("ip", help="the ip address to be scanned")
-parser.add_argument("-m", "--mode", help="1=Ports 1-1024; 2=Most common ports; 3=All ports", type=int, default=1)
-args = parser.parse_args()
-print(f"The IP to be scanned is: \033[93m{args.ip}\033[00m")
-if args.mode == 1:
-    print(f"The mode to be used is: \033[93mWell known ports (1-1024)\033[00m")
-elif args.mode == 2:
-    print(f"The mode to be used is: \033[93mMost common ports\033[00m")
-elif args.mode == 3:
-    print(f"The mode to be used is: \033[93mAll ports\033[00m")
 
 
 """     -- F  U  N  C  T  I  O  N  S --     """
+
+
+# Function to create the banner for the program
+def print_banner():
+    scanner_banner = pyfiglet.figlet_format("Port Scanner", font="slant")
+    print("\nThreaded...")
+    print(scanner_banner)
+    print("v0.10\t\t\t\t\t\t by Rob Flemen\n")
+
+
+# Function to get the arguments from the user
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("ip", help="the ip address to be scanned")
+    parser.add_argument("-m", "--mode", help="1=Ports 1-1024; 2=Most common ports; 3=All ports", type=int, default=1)
+    args = parser.parse_args()
+    print(f"The IP to be scanned is: \033[93m{args.ip}\033[00m")
+    if args.mode == 1:
+        print(f"The mode to be used is: \033[93mWell known ports (1-1024)\033[00m")
+    elif args.mode == 2:
+        print(f"The mode to be used is: \033[93mMost common ports\033[00m")
+    elif args.mode == 3:
+        print(f"The mode to be used is: \033[93mAll ports\033[00m")
+    return args
+
 
 # Determine if IP addresses is valid IP address using REGEX pattern
 def validate_ip(ip):
@@ -47,23 +52,15 @@ def validate_ip(ip):
         exit()
 
 
-# Make sure the IP address argument entered is a valid IP
-target = validate_ip(args.ip)
-scan_mode = args.mode
-
-
 # Function to get the domain name of the IP address, if available
 def get_domain_name(target):
+    print(f"Attempting to resolve the domain name for \033[93m{target}\033[00m")
     try:
         socket.setdefaulttimeout(1)
         hostname = socket.gethostbyaddr(target)[0]
-        return hostname
+        return print(f"[\033[92mSUCCESS\033[00m] The domain name is: \033[93m{hostname}\033[00m\n")
     except socket.herror:
-        return "Domain name not found"
-
-
-domain_name = get_domain_name(target)
-print(f"The domain name is: {domain_name}\n")
+        return print("[\033[91mFAILED\033[00m] Domain name not found\n")
 
 
 # Function to grab the banner of the service running on the open port, if available
@@ -124,6 +121,7 @@ def start_scanner(threads, scan_mode):
     port_list(scan_mode)
     start_time = time.time()
     thread_list = []
+    print(f"\nAttempting to scan the ports on \033[93m{target}\033[00m\n")
     for t in range(threads): # Add threads to the thread list
         thread = threading.Thread(target=worker) # Create a thread and assign the worker function to it
         thread_list.append(thread) # Add the thread to the thread list
@@ -133,15 +131,24 @@ def start_scanner(threads, scan_mode):
         thread.join() # Wait for all threads to finish
     end_time = time.time()
     duration = end_time - start_time # Calculate the duration of the scan
+    return duration
     
-    # Print the results of the scan and statistics
-    print(f"\nStats for {target}:")
+
+# Function to print the overall results of the scan
+def print_results(duration):
+    print(f"\nStats for \033[93m{target}\033[00m:")
     print("--------------------------")
-    print(f"[\033[92m\N{CHECK MARK}\033[00m]\t{len(ports_open)} ports are OPEN: {ports_open}")
-    print(f"[\033[91m!\033[00m]\t{len(ports_closed)} ports are CLOSED.")
-    print(f"[\033[93m?\033[00m]\t{len(ports_closed) + len(ports_open)} port scanned in {duration:.2f} seconds.")
-    print(f"[\033[93m?\033[00m]\tScanned {int(((len(ports_closed) + len(ports_open))/duration))} ports per second.\n")
+    print(f"[\033[92m\N{CHECK MARK}\033[00m]\t\033[93m{len(ports_open)}\033[00m ports are OPEN: \033[93m{ports_open}\033[00m")
+    print(f"[\033[91m!\033[00m]\t\033[93m{len(ports_closed)}\033[00m ports are \033[91mCLOSED\033[00m.")
+    print(f"[\033[93m?\033[00m]\t\033[93m{len(ports_closed) + len(ports_open)}\033[00m ports scanned in \033[93m{duration:.2f}\033[00m seconds.")
+    print(f"[\033[93m?\033[00m]\tScanned \033[93m{int(((len(ports_closed) + len(ports_open))/duration))}\033[00m ports per second.\n")
 
 
 # Run the scanner
-start_scanner(1800, scan_mode)
+print_banner()
+args = get_arguments()
+target = validate_ip(args.ip)
+scan_mode = args.mode
+get_domain_name(target)
+duration = start_scanner(1800, scan_mode)
+print_results(duration)
