@@ -6,30 +6,32 @@ import argparse # Argument parsing module
 import pyfiglet # ASCII art module
 import time # Time module for timing the scan
 import re # Regular Expression module for IP address validation 
-
+import sys # System module for exiting the program
+import os # OS module for clearing the screen
 
 # Create the banner for the program
-banner = pyfiglet.figlet_format("Port Scanner", font="slant")
+scanner_banner = pyfiglet.figlet_format("Port Scanner", font="slant")
 print("\nThreaded...")
-print(banner)
+print(scanner_banner)
 print("\t\t\t\t\t\t by Rob Flemen\n")
 
 
 # Setup the queue, lists, and arguments parser
 queue = Queue()
+print_lock = threading.Lock()
 ports_open = []
 ports_closed = []
 parser = argparse.ArgumentParser()
 parser.add_argument("ip", help="the ip address to be scanned")
 parser.add_argument("-m", "--mode", help="1=Ports 1-1024; 2=Most common ports; 3=All ports", type=int, default=1)
 args = parser.parse_args()
-print(f"The IP to be scanned is: {args.ip}")
+print(f"The IP to be scanned is: \033[93m{args.ip}\033[00m")
 if args.mode == 1:
-    print(f"The mode to be used is: Well known ports (1-1024)\n")
+    print(f"The mode to be used is: \033[93mWell known ports (1-1024)\033[00m\n")
 elif args.mode == 2:
-    print(f"The mode to be used is: Most common ports\n")
+    print(f"The mode to be used is: \033[93mMost common ports\033[00m\n")
 elif args.mode == 3:
-    print(f"The mode to be used is: All ports\n")
+    print(f"The mode to be used is: \033[93mAll ports\033[00m\n")
 
 
 # Determine if IP addresses is valid IP address. REGEX pattern taken from: 
@@ -57,12 +59,26 @@ def portscan(port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(1)
         s.connect((target, port))
+        with print_lock:
+            print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
+            grab(s)
         s.shutdown(2)
-        return True
+        return (True)
     except:
         return False
 
 
+def grab(conn): 
+    try:
+        conn.send(b'GET /\n\n')  
+        ret = conn.recv(1024) 
+        print("[\033[91mBanner Grab!\033[00m]", str(ret),"\n")
+        return 
+    except: 
+        return
+
+
+1
 # Determine which ports to scan based on the mode argument entered
 def port_list(scan_mode):
     if scan_mode == 1: # Scan "well-known" ports
@@ -85,7 +101,6 @@ def worker():
     while not queue.empty():
         port = queue.get()
         if portscan(port):
-            print(f"[\N{CHECK MARK}]\tport {format(port)} is OPEN!")
             ports_open.append(port)   
         else:
             ports_closed.append(port)
@@ -109,10 +124,10 @@ def start_scanner(threads, scan_mode):
     # Print the results of the scan and statistics
     print(f"\nStats for {target}:")
     print("--------------------------")
-    print(f"[\N{CHECK MARK}]\t{len(ports_open)} ports are open: {ports_open}")
-    print(f"[!]\t{len(ports_closed)} ports are closed.")
-    print(f"[?]\t{len(ports_closed) + len(ports_open)} port scanned in {duration:.2f} seconds.")
-    print(f"[?]\tScanned {int(((len(ports_closed) + len(ports_open))/duration))} ports per second.\n")
+    print(f"[\033[92m\N{CHECK MARK}\033[00m]\t{len(ports_open)} ports are OPEN: {ports_open}")
+    print(f"[\033[91m!\033[00m]\t{len(ports_closed)} ports are CLOSED.")
+    print(f"[\033[93m?\033[00m]\t{len(ports_closed) + len(ports_open)} port scanned in {duration:.2f} seconds.")
+    print(f"[\033[93m?\033[00m]\tScanned {int(((len(ports_closed) + len(ports_open))/duration))} ports per second.\n")
 
 
 # Run the scanner
