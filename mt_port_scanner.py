@@ -8,10 +8,10 @@ import time # Time module for timing the scan
 import re # Regular Expression module for IP address validation 
 
 
-queue = Queue()
-print_lock = threading.Lock()
-ports_open = []
-ports_closed = []
+queue = Queue() # Create a queue object for multithreading
+print_lock = threading.Lock() # Create a lock object for multithreading
+ports_open = [] # Create a list to store open ports
+ports_closed = [] # Create a list to store closed ports
 
 
 """     -- F  U  N  C  T  I  O  N  S --     """
@@ -143,11 +143,11 @@ def print_results(duration):
     print(f"[\033[93m?\033[00m]\tScanned \033[93m{int(((len(ports_closed) + len(ports_open))/duration))}\033[00m ports per second.\n")
 
 
-# Run the scanner
-print_banner() # Print the banner
-args = get_arguments() # Get the arguments from the user
-target = validate_ip(args.ip) # Validate the IP address
-scan_mode = args.mode # Get the scan mode
-get_domain_name(target) # Get the domain name of the IP address
-duration = start_scanner(1800, scan_mode) # Start the scanner and return the duration of the scan
-print_results(duration) # Print the results of the scan
+# Run the port scanner
+print_banner() # Print the program banner
+args = get_arguments() # Get the arguments from the user for use in program
+target = validate_ip(args.ip) # Validate the IP address entered by user
+scan_mode = args.mode # Get the scan mode seleted by user
+get_domain_name(target) # Get the domain name of the IP address if available
+duration = start_scanner(1800, scan_mode) # Start the port scanner and return the duration of the scan once completed
+print_results(duration) # Print the statistics of the scan
