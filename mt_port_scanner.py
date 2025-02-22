@@ -65,9 +65,9 @@ def get_domain_name(target):
 # Function to grab the banner of the service running on the open port, if available
 def banner_grab(conn): 
     try:
-        conn.send(b'GET /\n\n')  
+        conn.send(b'GET /\n\n')
         ret = conn.recv(1024) 
-        print("[\033[91mBanner Grab!\033[00m]", str(ret),"\n")
+        print(f"[\033[91mINFO\033[00m]", str(ret),"\n")
         return 
     except: 
         return
