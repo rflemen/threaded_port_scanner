@@ -48,7 +48,7 @@ def validate_ip(ip):
     if test: # valid IP address
         return ip
     else: # invalid IP address
-        print("\nInvalid IP address entered. Exiting program.\n")
+        print("\n\033[91mInvalid IP address entered. Exiting program.\n\033[00m")
         exit()
 
 
