@@ -89,7 +89,7 @@ def scan_ports(port):
 
 
 # Function to determine which ports to scan based on the mode argument entered
-def port_list(scan_mode):
+def get_ports(scan_mode):
     if scan_mode == 1: # Scan "well-known" ports
         for port in range(1, 1025):
             queue.put(port)
@@ -117,7 +117,7 @@ def assign_worker():
 
 # Function to start the scanner & print statistics
 def start_scanner(threads, scan_mode):
-    port_list(scan_mode)
+    get_ports(scan_mode)
     start_time = time.time()
     thread_list = []
     print(f"Attempting to scan the ports on \033[93m{target}\033[00m\n")
