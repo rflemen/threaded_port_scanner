@@ -10,8 +10,8 @@ import re # Regular Expression module for IP address validation
 
 queue = Queue() # Create a queue object for multithreading
 print_lock = threading.Lock() # Create a lock object for multithreading
-ports_open = []
-ports_closed = []
+open_ports = []
+closed_ports = []
 
 
 """     -- F  U  N  C  T  I  O  N  S --     """
@@ -110,9 +110,9 @@ def assign_worker():
     while not queue.empty():
         port = queue.get()
         if scan_ports(port):
-            ports_open.append(port)   
+            open_ports.append(port)   
         else:
-            ports_closed.append(port)
+            closed_ports.append(port)
 
 
 # Function to start the scanner & print statistics
@@ -137,10 +137,10 @@ def start_scanner(threads, scan_mode):
 def print_results(duration):
     print(f"\nStats for \033[93m{target}\033[00m:")
     print("--------------------------")
-    print(f"[\033[92m\N{CHECK MARK}\033[00m]\t\033[93m{len(ports_open)}\033[00m ports are \033[92mOPEN\033[00m: \033[93m{ports_open}\033[00m")
-    print(f"[\033[91m!\033[00m]\t\033[93m{len(ports_closed)}\033[00m ports are \033[91mCLOSED\033[00m.")
-    print(f"[\033[93m?\033[00m]\t\033[93m{len(ports_closed) + len(ports_open)}\033[00m ports scanned in \033[93m{duration:.2f}\033[00m seconds.")
-    print(f"[\033[93m?\033[00m]\tScanned \033[93m{int(((len(ports_closed) + len(ports_open))/duration))}\033[00m ports per second.\n")
+    print(f"[\033[92m\N{CHECK MARK}\033[00m]\t\033[93m{len(open_ports)}\033[00m ports are \033[92mOPEN\033[00m: \033[93m{open_ports}\033[00m")
+    print(f"[\033[91m!\033[00m]\t\033[93m{len(closed_ports)}\033[00m ports are \033[91mCLOSED\033[00m.")
+    print(f"[\033[93m?\033[00m]\t\033[93m{len(closed_ports) + len(open_ports)}\033[00m ports scanned in \033[93m{duration:.2f}\033[00m seconds.")
+    print(f"[\033[93m?\033[00m]\tScanned \033[93m{int(((len(closed_ports) + len(open_ports))/duration))}\033[00m ports per second.\n")
 
 
 # Run the port scanner
