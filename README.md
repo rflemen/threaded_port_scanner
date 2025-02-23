@@ -14,9 +14,7 @@ options:
 
   NOTE: If -m is omitted will scan well known ports by default.
 
-
-![Screenshot 2025-02-21 104947](https://github.com/user-attachments/assets/4df15e3f-f91d-42a9-ad8e-f57c64e5d0db)
-
+![Screenshot 2025-02-22 221029](https://github.com/user-attachments/assets/d8ef53ba-5461-41d2-b2ff-9220b2c12f96)
 
 Example:
 
