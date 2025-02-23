@@ -20,4 +20,6 @@ options:
 
 Example:
 
-![Screenshot 2025-02-21 104921](https://github.com/user-attachments/assets/51274595-4345-4dc3-8e5e-2043fa6ff111)
+![Screenshot 2025-02-22 220923](https://github.com/user-attachments/assets/780c6d3b-cd7f-4ef0-aa9b-741a3846e317)
+
+
