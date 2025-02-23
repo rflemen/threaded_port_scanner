@@ -63,7 +63,7 @@ def get_domain_name(target):
 
 
 # Function to grab the banner of the service running on the open port, if available
-def banner_grab(conn): 
+def grab_banner(conn): 
     try:
         conn.send(b'GET /\n\n')
         ret = conn.recv(1024) 
@@ -81,7 +81,7 @@ def portscan(port):
         s.connect((target, port))
         with print_lock:
             print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
-            banner_grab(s)
+            grab_banner(s)
         s.shutdown(2)
         return (True)
     except:
