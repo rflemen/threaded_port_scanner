@@ -74,7 +74,7 @@ def grab_banner(conn):
 
 
 # Function to scan the ports
-def portscan(port):
+def scan_ports(port):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(1.1)
@@ -106,10 +106,10 @@ def port_list(scan_mode):
 
 
 # Function to assign workers to scan the ports and add open and closed ports to appropriate lists
-def worker():
+def assign_worker():
     while not queue.empty():
         port = queue.get()
-        if portscan(port):
+        if scan_ports(port):
             ports_open.append(port)   
         else:
             ports_closed.append(port)
@@ -122,7 +122,7 @@ def start_scanner(threads, scan_mode):
     thread_list = []
     print(f"Attempting to scan the ports on \033[93m{target}\033[00m\n")
     for t in range(threads): # Add threads to the thread list
-        thread = threading.Thread(target=worker) # Create a thread and assign the worker function to it
+        thread = threading.Thread(target=assign_worker) # Create a thread and assign the worker function to it
         thread_list.append(thread) # Add the thread to the thread list
     for thread in thread_list: # Start the threads
         thread.start()
