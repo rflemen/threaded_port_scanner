@@ -6,7 +6,9 @@ import argparse # Argument parsing module
 import pyfiglet # ASCII art module
 import time # Time module for timing the scan
 import re # Regular Expression module for IP address validation 
+import ipaddress
 
+"""     -- G  L  O  B  A  L  S --     """
 
 queue = Queue() # Create a queue object for multithreading
 print_lock = threading.Lock() # Create a lock object for multithreading
@@ -43,12 +45,11 @@ def get_arguments():
 
 # Determine if IP addresses is valid IP address using REGEX pattern
 def validate_ip(ip):
-    pattern = re.compile('''(^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)''')
-    test = pattern.search(ip) 
-    if test: # valid IP address
+    try:
+        ipaddress.ip_address(ip)
         return ip
-    else: # invalid IP address
-        print("\n\033[91mInvalid IP address entered. Exiting program.\n\033[00m")
+    except ValueError:
+        print("\nInvalid IP address. Exiting.\n")
         exit()
 
 
@@ -58,19 +59,17 @@ def get_domain_name(target):
     try:
         hostname = socket.gethostbyaddr(target)[0]
         return print(f"[\033[92mSUCCESS\033[00m] The domain name is: \033[93m{hostname}\033[00m\n")
-    except socket.herror:
+    except (socket.timeout, ConnectionRefusedError, OSError, socket.herror):
         return print("[\033[91mFAILED\033[00m] Domain name not found\n")
 
 
 # Function to grab the banner of the service running on the open port, if available
-def grab_banner(conn): 
+def grab_banner(conn):
     try:
-        conn.send(b'GET /\n\n')
-        ret = conn.recv(1024) 
-        print(f"[\033[91mINFO\033[00m]", str(ret),"\n")
-        return 
-    except: 
-        return
+        conn.sendall(b'\r\n')
+        return conn.recv(1024)
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        return None
 
 
 # Function to scan the ports
@@ -81,11 +80,14 @@ def scan_ports(port):
         s.connect((target, port))
         with print_lock:
             print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
-            grab_banner(s)
-        s.shutdown(2)
+            banner = grab_banner(s)
+            if banner:
+                print(f"    [\033[93mBANNER\033[00m] {banner.decode(errors='ignore').strip()}")    
         return (True)
-    except:
+    except (socket.timeout, ConnectionRefusedError, OSError):
         return False
+    finally:
+        s.close()
 
 
 # Function to determine which ports to scan based on the mode argument entered
@@ -97,7 +99,7 @@ def get_ports(scan_mode):
         ports = [20, 21, 22, 23, 25, 53, 69, 80, 88, 102, 110, 111, 135, 137, 139, 143, 381, 383, 443,
                  445, 464, 465, 587, 593, 636, 691, 902, 989, 990, 993, 1025, 1194, 1337, 1589, 1725, 2082, 
                  3074, 3306, 3389, 3585, 3586, 3724, 4444, 5432, 5900, 6665, 6666, 6667, 6668, 6669, 6881,
-                 6970, 6999, 8086, 8087, 8222, 9100, 10000, 12345, 12345, 27374, 31337]
+                 6970, 6999, 8086, 8087, 8222, 9100, 10000, 12345, 27374, 31337]
         for port in ports:
             queue.put(port)
     elif scan_mode == 3: # Scan all 65,535 ports
@@ -109,10 +111,13 @@ def get_ports(scan_mode):
 def assign_worker():
     while not queue.empty():
         port = queue.get()
-        if scan_ports(port):
-            open_ports.append(port)   
-        else:
-            closed_ports.append(port)
+        result = scan_ports(port)
+        with print_lock:
+            if result:
+                open_ports.append(port)   
+            else:
+                closed_ports.append(port)
+        queue.task_done()   
 
 
 # Function to start the scanner & print statistics
@@ -122,7 +127,7 @@ def start_scanner(threads, scan_mode):
     thread_list = []
     print(f"Attempting to scan the ports on \033[93m{target}\033[00m\n")
     for t in range(threads): # Add threads to the thread list
-        thread = threading.Thread(target=assign_worker) # Create a thread and assign the worker function to it
+        thread = threading.Thread(target=assign_worker, daemon=True) # Create a thread and assign the worker function to it
         thread_list.append(thread) # Add the thread to the thread list
     for thread in thread_list: # Start the threads
         thread.start()
@@ -144,10 +149,14 @@ def print_results(duration):
 
 
 # Run the port scanner
-print_banner() # Print the program banner
-args = get_arguments() # Get the arguments from the user for use in program
-target = validate_ip(args.ip) # Validate the IP address entered by user
-scan_mode = args.mode # Get the scan mode seleted by user
-get_domain_name(target) # Get the domain name of the IP address if available
-duration = start_scanner(1800, scan_mode) # Start the port scanner and return the duration of the scan once completed
-print_results(duration) # Print the statistics of the scan
+try:
+    print_banner() # Print the program banner
+    args = get_arguments() # Get the arguments from the user for use in program
+    target = validate_ip(args.ip) # Validate the IP address entered by user
+    scan_mode = args.mode # Get the scan mode seleted by user
+    get_domain_name(target) # Get the domain name of the IP address if available
+    duration = start_scanner(200, scan_mode) # Start the port scanner and return the duration of the scan once completed
+    print_results(duration) # Print the statistics of the scan
+except KeyboardInterrupt:
+    print("\n\033[91mScan interrupted by user. Exiting program. Goodbye!\n\033[00m")
+    exit()
