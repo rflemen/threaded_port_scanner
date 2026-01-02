@@ -6,6 +6,7 @@
 # 1/1/2026
 
 from queue import Queue # Queue module for multithreading
+from queue import Empty # Exception for empty queue
 import threading # Multithreading module
 import socket # Socket module for network connections
 import argparse # Argument parsing module
@@ -20,6 +21,46 @@ queue = Queue() # Create a queue object for multithreading
 print_lock = threading.Lock() # Create a lock object for multithreading
 open_ports = []
 closed_ports = []
+
+
+SERVICE_PROBES = {
+    21: b'USER anonymous\r\n',
+    22: b'\r\n',
+    25: b'HELO example.com\r\n',
+    80: b'HEAD / HTTP/1.0\r\n\r\n',
+    110: b'QUIT\r\n',
+    143: b'1 LOGOUT\r\n',
+    443: b'HEAD / HTTP/1.0\r\n\r\n',
+    3306: b'\r\n',
+
+    # RDP (TPKT/X.224)
+    3389: b"\x03\x00\x00\x0b\x06\xe0\x00\x00\x00\x00",
+
+    # WinRM HTTP
+    5985: (
+        b"POST /wsman HTTP/1.1\r\n"
+        b"Host: localhost\r\n"
+        b"Content-Length: 0\r\n"
+        b"\r\n"
+    )
+}
+
+
+SERVICE_SIGNATURES = {
+    "ssh": ["ssh"],
+    "http": ["http", "server:"],
+    "ftp": ["ftp"],
+    "smtp": ["smtp"],
+    "pop3": ["pop3"],
+    "imap": ["imap"],
+    "mysql": ["mysql"],
+
+    # RDP uses TPKT, not text
+    "rdp": ["\x03\x00"],
+
+    # WinRM exposes HTTPAPI headers
+    "winrm": ["Microsoft-HTTPAPI", "WWW-Authenticate"]
+}
 
 
 """     -- F  U  N  C  T  I  O  N  S --     """
@@ -55,7 +96,7 @@ def get_arguments():
     return args
 
 
-# Determine if IP addresses is valid IP address using REGEX pattern
+# Determine if IP addresses is valid
 def validate_ip(ip):
     try:
         ipaddress.ip_address(ip)
@@ -73,28 +114,49 @@ def get_domain_name(target):
         return print(f"[\033[92mSUCCESS\033[00m] The domain name is: \033[93m{hostname}\033[00m\n")
     except (socket.timeout, ConnectionRefusedError, OSError, socket.herror):
         return print("[\033[91mFAILED\033[00m] Domain name not found\n")
+        
 
-
-# Function to grab the banner of the service running on the open port, if available
-def grab_banner(conn):
+# Function to detect service
+def fingerprint_service(conn, port):
     try:
-        conn.sendall(b'\r\n')
-        return conn.recv(1024)
-    except (socket.timeout, ConnectionRefusedError, OSError):
-        return None
+        conn.settimeout(2.0)
+        probe = SERVICE_PROBES.get(port, b'\r\n')
+        conn.sendall(probe)
+        data = conn.recv(1024)
+
+        # RDP (binary protocol)
+        if port == 3389 and data.startswith(b"\x03\x00"):
+            return "rdp", "RDP detected (TPKT response)"
+
+        # WinRM HTTPS (TLS only, no plaintext banner)
+        if port == 5986:
+            return "winrm-https", "TLS service detected (likely WinRM)"
+        
+        if not data:
+            return None, None
+        banner = data.decode(errors="ignore").lower()
+        for service, keywords in SERVICE_SIGNATURES.items():
+            for keyword in keywords:
+                if keyword in banner:
+                    return service, data.decode(errors="ignore").strip()
+        return "unknown", data.decode(errors="ignore").strip()
+    except Exception:
+        return None, None
 
 
 # Function to scan the ports
 def scan_ports(port):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(1.1)
+        s.settimeout(1.0)
         s.connect((target, port))
         with print_lock:
             print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
-            banner = grab_banner(s)
+            service, banner = fingerprint_service(s, port)
+            if service:
+                print(f"    [\033[93mSERVICE\033[00m] {service.upper()}")
             if banner:
-                print(f"    [\033[93mBANNER\033[00m] {banner.decode(errors='ignore').strip()}")    
+                print(f"    [\033[93mBANNER\033[00m]  {banner}")    
         return (True)
     except (socket.timeout, ConnectionRefusedError, OSError):
         return False
@@ -121,15 +183,18 @@ def get_ports(scan_mode):
 
 # Function to assign workers to scan the ports and add open and closed ports to appropriate lists
 def assign_worker():
-    while not queue.empty():
-        port = queue.get()
+    while True:
+        try:
+            port = queue.get_nowait()
+        except Empty:
+            break
         result = scan_ports(port)
         with print_lock:
             if result:
-                open_ports.append(port)   
+                open_ports.append(port)
             else:
                 closed_ports.append(port)
-        queue.task_done()   
+        queue.task_done()
 
 
 # Function to start the scanner & print statistics
@@ -139,10 +204,11 @@ def start_scanner(threads, scan_mode):
     thread_list = []
     print(f"Attempting to scan the ports on \033[93m{target}\033[00m\n")
     for t in range(threads): # Add threads to the thread list
-        thread = threading.Thread(target=assign_worker, daemon=True) # Create a thread and assign the worker function to it
+        thread = threading.Thread(target=assign_worker) # Create a thread and assign the worker function to it
         thread_list.append(thread) # Add the thread to the thread list
     for thread in thread_list: # Start the threads
         thread.start()
+    queue.join() # Wait for the queue to be empty
     for thread in thread_list:
         thread.join() # Wait for all threads to finish
     end_time = time.time()
