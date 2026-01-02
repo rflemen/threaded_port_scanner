@@ -14,7 +14,9 @@ import time # Time module for timing the scan
 import re # Regular Expression module for IP address validation 
 import ipaddress
 
+
 """     -- G  L  O  B  A  L  S --     """
+
 
 queue = Queue() # Create a queue object for multithreading
 print_lock = threading.Lock() # Create a lock object for multithreading
@@ -37,7 +39,6 @@ def print_banner():
     print("Version 1.0 - Written by Rob Flemen")
     print("") 
     time.sleep(1)
-
 
 
 # Function to get the arguments from the user
@@ -112,7 +113,7 @@ def get_ports(scan_mode):
         ports = [20, 21, 22, 23, 25, 53, 69, 80, 88, 102, 110, 111, 135, 137, 139, 143, 381, 383, 443,
                  445, 464, 465, 587, 593, 636, 691, 902, 989, 990, 993, 1025, 1194, 1337, 1589, 1725, 2082, 
                  3074, 3306, 3389, 3585, 3586, 3724, 4444, 5432, 5900, 6665, 6666, 6667, 6668, 6669, 6881,
-                 6970, 6999, 8086, 8087, 8222, 9100, 10000, 12345, 27374, 31337]
+                 6970, 6999, 8000, 8080, 8086, 8087, 8222, 9100, 10000, 12345, 27374, 31337]
         for port in ports:
             queue.put(port)
     elif scan_mode == 3: # Scan all 65,535 ports
