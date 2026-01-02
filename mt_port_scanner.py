@@ -11,7 +11,9 @@ import threading # Multithreading module
 import socket # Socket module for network connections
 import argparse # Argument parsing module
 import time # Time module for timing the scan
-import ipaddress
+import ipaddress # IP address validation module
+import ssl # SSL module for secure connections
+
 
 
 """     -- G  L  O  B  A  L  S --     """
@@ -20,8 +22,7 @@ import ipaddress
 queue = Queue() # Create a queue object for multithreading
 print_lock = threading.Lock() # Create a lock object for multithreading
 open_ports = []
-closed_ports = []
-
+closed_ports_count = 0
 
 SERVICE_PROBES = {
     21: b'USER anonymous\r\n',
@@ -55,11 +56,8 @@ SERVICE_SIGNATURES = {
     "imap": ["imap"],
     "mysql": ["mysql"],
 
-    # RDP uses TPKT, not text
-    "rdp": ["\x03\x00"],
-
     # WinRM exposes HTTPAPI headers
-    "winrm": ["Microsoft-HTTPAPI", "WWW-Authenticate"]
+    "winrm": ["microsoft-httpapi", "www-authenticate"],
 }
 
 
@@ -77,7 +75,7 @@ def print_banner():
     print("Threaded Port Scanner")
     print("Version 1.0 - Written by Rob Flemen")
     print("") 
-    time.sleep(1)
+    time.sleep(0.5)
 
 
 # Function to get the arguments from the user
@@ -111,14 +109,41 @@ def get_domain_name(target):
     print(f"Attempting to resolve the domain name for \033[93m{target}\033[00m")
     try:
         hostname = socket.gethostbyaddr(target)[0]
-        return print(f"[\033[92mSUCCESS\033[00m] The domain name is: \033[93m{hostname}\033[00m\n")
+        print(f"[\033[92mSUCCESS\033[00m] The domain name is: \033[93m{hostname}\033[00m\n")
     except (socket.timeout, ConnectionRefusedError, OSError, socket.herror):
-        return print("[\033[91mFAILED\033[00m] Domain name not found\n")
+        print("[\033[91mFAILED\033[00m] Domain name not found\n")
         
+
+def tls_probe(target, port):
+    try:
+        context = ssl.create_default_context()
+        with socket.create_connection((target, port), timeout=2.0) as sock:
+            with context.wrap_socket(sock, server_hostname=target) as tls_sock:
+                tls_sock.settimeout(2.0)
+                tls_sock.sendall(b"HEAD / HTTP/1.0\r\n\r\n")
+                data = tls_sock.recv(1024)
+                return data
+    except Exception:
+        return None
+
 
 # Function to detect service
 def fingerprint_service(conn, port):
     try:
+        # TLS-only ports
+        if port in (443, 5986):
+            data = tls_probe(target, port)
+            if not data:
+                return "tls", "TLS service detected (no banner)"
+            banner = data.decode(errors="ignore").lower()
+            if port == 5986:
+                return "winrm-https", "WinRM HTTPS detected"
+
+            if "server:" in banner or "http" in banner:
+                return "https", data.decode(errors="ignore").strip()
+
+            return "tls", data.decode(errors="ignore").strip()
+        # Plaintext services
         conn.settimeout(2.0)
         probe = SERVICE_PROBES.get(port, b'\r\n')
         conn.sendall(probe)
@@ -127,11 +152,6 @@ def fingerprint_service(conn, port):
         # RDP (binary protocol)
         if port == 3389 and data.startswith(b"\x03\x00"):
             return "rdp", "RDP detected (TPKT response)"
-
-        # WinRM HTTPS (TLS only, no plaintext banner)
-        if port == 5986:
-            return "winrm-https", "TLS service detected (likely WinRM)"
-        
         if not data:
             return None, None
         banner = data.decode(errors="ignore").lower()
@@ -140,6 +160,7 @@ def fingerprint_service(conn, port):
                 if keyword in banner:
                     return service, data.decode(errors="ignore").strip()
         return "unknown", data.decode(errors="ignore").strip()
+
     except Exception:
         return None, None
 
@@ -150,14 +171,16 @@ def scan_ports(port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(1.0)
         s.connect((target, port))
+
+        print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
+
         with print_lock:
-            print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
             service, banner = fingerprint_service(s, port)
             if service:
                 print(f"    [\033[93mSERVICE\033[00m] {service.upper()}")
             if banner:
                 print(f"    [\033[93mBANNER\033[00m]  {banner}")    
-        return (True)
+        return True
     except (socket.timeout, ConnectionRefusedError, OSError):
         return False
     finally:
@@ -172,8 +195,8 @@ def get_ports(scan_mode):
     elif scan_mode == 2: # Scan common ports
         ports = [20, 21, 22, 23, 25, 53, 69, 80, 88, 102, 110, 111, 135, 137, 139, 143, 381, 383, 443,
                  445, 464, 465, 587, 593, 636, 691, 902, 989, 990, 993, 1025, 1194, 1337, 1589, 1725, 2082, 
-                 3074, 3306, 3389, 3585, 3586, 3724, 4444, 5432, 5900, 5985, 6665, 6666, 6667, 6668, 6669, 6881,
-                 6970, 6999, 8000, 8080, 8086, 8087, 8222, 9100, 9999, 10000, 12345, 27374, 31337]
+                 3074, 3306, 3389, 3585, 3586, 3724, 4444, 5432, 5900, 5985, 5986, 6665, 6666, 6667, 6668, 6669,
+                 6881, 6970, 6999, 8000, 8080, 8086, 8087, 8222, 9100, 9999, 10000, 12345, 27374, 31337]
         for port in ports:
             queue.put(port)
     elif scan_mode == 3: # Scan all 65,535 ports
@@ -183,6 +206,7 @@ def get_ports(scan_mode):
 
 # Function to assign workers to scan the ports and add open and closed ports to appropriate lists
 def assign_worker():
+    global closed_ports_count
     while True:
         try:
             port = queue.get_nowait()
@@ -193,7 +217,7 @@ def assign_worker():
             if result:
                 open_ports.append(port)
             else:
-                closed_ports.append(port)
+                closed_ports_count += 1
         queue.task_done()
 
 
@@ -220,10 +244,10 @@ def start_scanner(threads, scan_mode):
 def print_results(duration):
     print(f"\nStats for \033[93m{target}\033[00m:")
     print("--------------------------")
-    print(f"[\033[92m\N{CHECK MARK}\033[00m]\t\033[93m{len(open_ports)}\033[00m ports are \033[92mOPEN\033[00m: \033[93m{open_ports}\033[00m")
-    print(f"[\033[91m!\033[00m]\t\033[93m{len(closed_ports)}\033[00m ports are \033[91mCLOSED\033[00m.")
-    print(f"[\033[93m?\033[00m]\t\033[93m{len(closed_ports) + len(open_ports)}\033[00m ports scanned in \033[93m{duration:.2f}\033[00m seconds.")
-    print(f"[\033[93m?\033[00m]\tScanned \033[93m{int(((len(closed_ports) + len(open_ports))/duration))}\033[00m ports per second.\n")
+    print(f"[\033[92m\N{CHECK MARK}\033[00m]\t\033[93m{len(open_ports)}\033[00m ports are \033[92mOPEN\033[00m: \033[93m{sorted(open_ports)}\033[00m")
+    print(f"[\033[91m!\033[00m]\t\033[93m{closed_ports_count}\033[00m ports are \033[91mCLOSED\033[00m.")
+    print(f"[\033[93m?\033[00m]\t\033[93m{(closed_ports_count) + len(open_ports)}\033[00m ports scanned in \033[93m{duration:.2f}\033[00m seconds.")
+    print(f"[\033[93m?\033[00m]\tScanned \033[93m{int(((closed_ports_count + len(open_ports))/duration))}\033[00m ports per second.\n")
 
 
 # Run the port scanner
