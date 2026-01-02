@@ -1,4 +1,10 @@
-# Multithreaded port scanner by Rob Flemen
+#!/usr/bin/python3
+# Threaded port scanner
+# Written by Rob Flemen
+# Author Github: https://github.com/rflemen
+# Author YouTube: https://www.youtube.com/@RobFlemen 
+# 1/1/2026
+
 from queue import Queue # Queue module for multithreading
 import threading # Multithreading module
 import socket # Socket module for network connections
@@ -20,11 +26,18 @@ closed_ports = []
 
 
 # Function to create the banner for the program
-def print_banner():
-    print("\nThreaded...\033[94m")
-    scanner_banner = pyfiglet.figlet_format("Port Scanner", font="slant")
-    print(scanner_banner, "\033[00m")
-    print("v0.10\t\t\t\t\t\t by Rob Flemen\n")
+def print_banner():        
+    print("SCRiPT By:                ")
+    print("        ,------.           ")            
+    print(",--,--, |  .--. ',--,--,--.") 
+    print("|      ;|  '--' ||        |") 
+    print("|  ||  ||  | --' |  |  |  |") 
+    print("`--''--'`--'     `--`--`--'")                            
+    print("Threaded Port Scanner")
+    print("Version 1.0 - Written by Rob Flemen")
+    print("") 
+    time.sleep(1)
+
 
 
 # Function to get the arguments from the user
