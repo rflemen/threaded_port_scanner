@@ -9,9 +9,7 @@ from queue import Queue # Queue module for multithreading
 import threading # Multithreading module
 import socket # Socket module for network connections
 import argparse # Argument parsing module
-import pyfiglet # ASCII art module
 import time # Time module for timing the scan
-import re # Regular Expression module for IP address validation 
 import ipaddress
 
 
@@ -47,13 +45,13 @@ def get_arguments():
     parser.add_argument("ip", help="the ip address to be scanned")
     parser.add_argument("-m", "--mode", help="1=Ports 1-1024; 2=Most common ports; 3=All ports", type=int, default=1)
     args = parser.parse_args()
-    print(f"The IP to be scanned is: \033[93m{args.ip}\033[00m")
+    print(f"IP to be scanned is: \033[93m{args.ip}\033[00m")
     if args.mode == 1:
-        print(f"The mode to be used is: \033[93mWell known ports (1-1024)\033[00m")
+        print(f"Scan mode: \033[93mWell known ports (1-1024)\033[00m")
     elif args.mode == 2:
-        print(f"The mode to be used is: \033[93mMost common ports\033[00m")
+        print(f"Scan mode: \033[93mMost common ports\033[00m")
     elif args.mode == 3:
-        print(f"The mode to be used is: \033[93mAll ports\033[00m")
+        print(f"Scan mode: \033[93mAll ports\033[00m")
     return args
 
 
@@ -112,8 +110,8 @@ def get_ports(scan_mode):
     elif scan_mode == 2: # Scan common ports
         ports = [20, 21, 22, 23, 25, 53, 69, 80, 88, 102, 110, 111, 135, 137, 139, 143, 381, 383, 443,
                  445, 464, 465, 587, 593, 636, 691, 902, 989, 990, 993, 1025, 1194, 1337, 1589, 1725, 2082, 
-                 3074, 3306, 3389, 3585, 3586, 3724, 4444, 5432, 5900, 6665, 6666, 6667, 6668, 6669, 6881,
-                 6970, 6999, 8000, 8080, 8086, 8087, 8222, 9100, 10000, 12345, 27374, 31337]
+                 3074, 3306, 3389, 3585, 3586, 3724, 4444, 5432, 5900, 5985, 6665, 6666, 6667, 6668, 6669, 6881,
+                 6970, 6999, 8000, 8080, 8086, 8087, 8222, 9100, 9999, 10000, 12345, 27374, 31337]
         for port in ports:
             queue.put(port)
     elif scan_mode == 3: # Scan all 65,535 ports
