@@ -172,9 +172,8 @@ def scan_ports(port):
         s.settimeout(1.0)
         s.connect((target, port))
 
-        print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
-
         with print_lock:
+            print(f"[\033[92m\N{CHECK MARK}\033[00m] port {format(port)} is OPEN!")
             service, banner = fingerprint_service(s, port)
             if service:
                 print(f"    [\033[93mSERVICE\033[00m] {service.upper()}")
