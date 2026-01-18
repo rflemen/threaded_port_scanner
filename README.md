@@ -1,7 +1,7 @@
 
 Usage:
 
-mt_port_scanner.py [-h] [-m MODE] ip
+python3 ./mt_port_scanner.py [-h] [-m MODE] ip
 
 positional arguments:
   ip                    the ip address to be scanned
